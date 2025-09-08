@@ -7,10 +7,10 @@ MySQL_PATH="${MySQL_PATH:-/usr/local/pgsql/bin/}"
 export PATH=$MySQL_PATH:$PATH
 #MySQL连接参数
 MySQL_HOST="${MySQL_HOST:-localhost}"
-MySQL_PORT="${MySQL_PORT:-54321}"
-MySQL_USER="${MySQL_USER:-postgres}"
-MySQL_PASSWORD="${MySQL_PASSWORD:-your_password}" # 替换为实际密码，或者使用.pgpass文件进行校验，或者pg_hba.conf有针对性的配置免密
-MySQL_DATABASE="${MySQL_DATABASE:-postgres}"
+MySQL_PORT="${MySQL_PORT:-3306}"
+MySQL_USER="${MySQL_USER:-root}"
+MySQL_PASSWORD="${MySQL_PASSWORD:-}" # 替换为实际密码，或者使用.pgpass文件进行校验，或者pg_hba.conf有针对性的配置免密
+MySQL_DATABASE="${MySQL_DATABASE:-mysql}"
 #>>>>>>>>>> 需要修改的参数 >>>>>>>>
 
 #echo "当前文件名:"$0 # 如果是绝对路径，会直接打印；而不是文件名
@@ -104,8 +104,11 @@ execute_query() {
     log_message "INFO" "开始查询数据库..."
 
     # 动态检测MySQL版本并适配SQL
-    MySQL_MAJOR_VERSION=$(mysql -h "$MySQL_HOST" -p "$MySQL_PORT" -U "$MySQL_USER" -d "$MySQL_DATABASE" -t -c "SELECT current_setting('server_version_num')::int/10000" 2>/dev/null || echo 10)
-    #echo "MySQL_MAJOR_VERSION:""$MySQL_MAJOR_VERSION"
+    #MySQL_MAJOR_VERSION=$(mysql -h "$MySQL_HOST" -P "$MySQL_PORT" -u "$MySQL_USER" "$MySQL_DATABASE" -p"$MySQL_PORT" -c "SELECT version();" 2>/dev/null || echo 10)
+    MySQL_MAJOR_VERSION=$(mysql -h "$MySQL_HOST" -P "$MySQL_PORT" -u "$MySQL_USER" "$MySQL_DATABASE" -p"$MySQL_PASSWORD" --silent --skip-column-names -e "SELECT version();" >> "$LOG_FILE")
+    MySQL_MAJOR_VERSION=$(mysql -h "$MySQL_HOST" -P "$MySQL_PORT" -u "$MySQL_USER" "$MySQL_DATABASE" -p"$MySQL_PASSWORD" --silent --skip-column-names -e "SELECT * from information_schema.processlist;" >> "$LOG_FILE")
+    echo "MySQL_MAJOR_VERSION:""$MySQL_MAJOR_VERSION"
+    exit 1
     # 根据版本构建字段列表
     # MySQL14+ (≥14)，不需要处理；MySQL13，query_id，添加 NULL as query_id；MySQL10-12，leader_pid，query_id，添加两个 NULL as col。
     if [ "$MySQL_MAJOR_VERSION" -ge 14 ]; then
