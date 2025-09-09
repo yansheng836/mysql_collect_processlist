@@ -9,7 +9,7 @@ export PATH=$MYSQL_PATH:$PATH
 MYSQL_HOST="${MYSQL_HOST:-localhost}"
 MYSQL_PORT="${MYSQL_PORT:-3306}"
 MYSQL_USER="${MYSQL_USER:-root}"
-MYSQL_PWD="${MYSQL_PASSWORD:-}" # 替换为实际密码
+MYSQL_PWD="${MYSQL_PWD:-}" # 替换为实际密码
 export MYSQL_PWD=$MYSQL_PWD
 MYSQL_DATABASE="${MYSQL_DATABASE:-mysql}"
 #>>>>>>>>>> 需要修改的参数 >>>>>>>>
@@ -123,22 +123,23 @@ execute_query() {
     fi
 
     # 构建查询SQL
-    #SQL="SELECT now(), $FIELDS from pg_stat_activity WHERE pid <> pg_backend_pid() ORDER BY backend_start ASC"
     SQL="SELECT * from information_schema.processlist;"
     #echo "SQL:""$SQL"
 
-    # 查询pg_stat_activity视图
-    #ERROR_OUTPUT=$(MySQLPASSWORD="$MYSQL_PASSWORD" mysql -h "$MYSQL_HOST" -p "$MYSQL_PORT" -U "$MYSQL_USER" -d "$MYSQL_DATABASE" -A -t -c "$SQL" 2>&1 >> "$LOG_FILE")
-    ERROR_OUTPUT=$(mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" --silent --skip-column-names -B -e "SELECT * from information_schema.processlist;" "$MYSQL_DATABASE"  2>&1  >> "$LOG_FILE" )
-
+    # 查询 information_schema.processlist
+    #ERROR_OUTPUT=$(mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" --silent --skip-column-names -B -e "SELECT * from information_schema.processlist;" "$MYSQL_DATABASE"  2>&1  >> "$LOG_FILE" )
+    # 为了能够正常捕获异常及进行换行符处理，不直接输出到文件
+    ALL_OUTPUT=$(mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" --silent --skip-column-names -B -e "SELECT now(),ID,USER,HOST,DB,COMMAND,TIME,STATE,INFO from information_schema.processlist;" "$MYSQL_DATABASE"  2>&1 )
     EXIT_STATUS=$?
-    echo "ERROR_OUTPUT:"$ERROR_OUTPUT
-    echo "EXIT_STATUS:"$EXIT_STATUS
+    #echo "ALL_OUTPUT:"$ALL_OUTPUT
+    #echo "EXIT_STATUS:"$EXIT_STATUS
 
-    # 检查执行状态
+    # 检查执行状态：如果没有异常，这个就是输出的结果；如果有异常，就是报错信息
     if [ $EXIT_STATUS -eq 0 ]; then
         log_message "INFO" "SQL命令执行成功。"
+        echo "$ALL_OUTPUT" | tr '\t' '|' >> "$LOG_FILE"
     else
+        ERROR_OUTPUT=$ALL_OUTPUT
         log_message "ERROR" "SQL命令执行失败，错误信息为：$ERROR_OUTPUT"
         # 根据错误信息进行更精细化的判断和处理
         if echo "$ERROR_OUTPUT" | grep -q "ERROR 2002 (HY000): Can't connect to local MySQL server through socket "; then
