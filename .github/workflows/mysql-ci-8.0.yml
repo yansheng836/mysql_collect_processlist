@@ -1,3 +1,0 @@
-name: MySQL Session Collector CI for 8.0
-
-on: [push, pull_request]
