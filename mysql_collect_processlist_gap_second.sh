@@ -42,7 +42,7 @@ while true; do
     fi
 
     #执行主要命令
-    sh "$script_dir/pg_collect_pgsa.sh"
+    sh "$script_dir/mysql_collect_processlist.sh"
 
     #sleep 5
     sleep "$DEFAULT_SLEEP"

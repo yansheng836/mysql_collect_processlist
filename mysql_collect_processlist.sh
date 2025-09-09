@@ -3,15 +3,15 @@
 #<<<<<<<< 需要修改的参数 <<<<<<<<<
 # 设置 PATH，添加 mysql 所在路径（ whereis mysql ）
 # 兼容ci，如果有环境变量，优先使用环境变量，否则使用默认值
-MySQL_PATH="${MySQL_PATH:-/usr/bin/}"
-export PATH=$MySQL_PATH:$PATH
+MYSQL_PATH="${MYSQL_PATH:-/usr/bin/}"
+export PATH=$MYSQL_PATH:$PATH
 #MySQL连接参数
-MySQL_HOST="${MySQL_HOST:-localhost}"
-MySQL_PORT="${MySQL_PORT:-33061}"
-MySQL_USER="${MySQL_USER:-root}"
-MySQL_PASSWORD="${MySQL_PASSWORD:-}" # 替换为实际密码，或者使用.pgpass文件进行校验，或者pg_hba.conf有针对性的配置免密
-export MySQL_PWD=$MySQL_PASSWORD
-MySQL_DATABASE="${MySQL_DATABASE:-mysql}"
+MYSQL_HOST="${MYSQL_HOST:-localhost}"
+MYSQL_PORT="${MYSQL_PORT:-3306}"
+MYSQL_USER="${MYSQL_USER:-root}"
+MYSQL_PWD="${MYSQL_PASSWORD:-}" # 替换为实际密码
+export MYSQL_PWD=$MYSQL_PWD
+MYSQL_DATABASE="${MYSQL_DATABASE:-mysql}"
 #>>>>>>>>>> 需要修改的参数 >>>>>>>>
 
 #echo "当前文件名:"$0 # 如果是绝对路径，会直接打印；而不是文件名
@@ -105,17 +105,17 @@ execute_query() {
     log_message "INFO" "开始查询数据库..."
 
     # 动态检测MySQL版本并适配SQL
-    #MySQL_MAJOR_VERSION=$(mysql -h "$MySQL_HOST" -P "$MySQL_PORT" -u "$MySQL_USER" "$MySQL_DATABASE" -p"$MySQL_PORT" -c "SELECT version();" 2>/dev/null || echo 10)
-    #MySQL_MAJOR_VERSION=$(mysql -h "$MySQL_HOST" -P "$MySQL_PORT" -u "$MySQL_USER" "$MySQL_DATABASE" -p"$MySQL_PASSWORD" --silent --skip-column-names -e "SELECT version();" >> "$LOG_FILE")
-    #MySQL_MAJOR_VERSION=$(mysql -h "$MySQL_HOST" -P "$MySQL_PORT" -u "$MySQL_USER" "$MySQL_DATABASE" -p"$MySQL_PASSWORD" --silent --skip-column-names -e "SELECT * from information_schema.processlist;" | tr '\t' '|' >> "$LOG_FILE")
-    #echo "MySQL_MAJOR_VERSION:""$MySQL_MAJOR_VERSION"
+    #MYSQL_MAJOR_VERSION=$(mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" "$MYSQL_DATABASE" -p"$MYSQL_PORT" -c "SELECT version();" 2>/dev/null || echo 10)
+    #MYSQL_MAJOR_VERSION=$(mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" "$MYSQL_DATABASE" -p"$MYSQL_PASSWORD" --silent --skip-column-names -e "SELECT version();" >> "$LOG_FILE")
+    #MYSQL_MAJOR_VERSION=$(mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" "$MYSQL_DATABASE" -p"$MYSQL_PASSWORD" --silent --skip-column-names -e "SELECT * from information_schema.processlist;" | tr '\t' '|' >> "$LOG_FILE")
+    #echo "MYSQL_MAJOR_VERSION:""$MYSQL_MAJOR_VERSION"
     #exit 1
     # 根据版本构建字段列表
     # MySQL14+ (≥14)，不需要处理；MySQL13，query_id，添加 NULL as query_id；MySQL10-12，leader_pid，query_id，添加两个 NULL as col。
-    MySQL_MAJOR_VERSION=8
-    if [ "$MySQL_MAJOR_VERSION" -ge 14 ]; then
+    MYSQL_MAJOR_VERSION=8
+    if [ "$MYSQL_MAJOR_VERSION" -ge 14 ]; then
         FIELDS="datid, datname, pid, leader_pid, usesysid, usename, application_name, client_addr, client_hostname, client_port, backend_start, xact_start, query_start, state_change, wait_event_type, wait_event, state, backend_xid, backend_xmin, query_id, query, backend_type"
-    elif [ "$MySQL_MAJOR_VERSION" -ge 13 ]; then
+    elif [ "$MYSQL_MAJOR_VERSION" -ge 13 ]; then
         FIELDS="datid, datname, pid, leader_pid, usesysid, usename, application_name, client_addr, client_hostname, client_port, backend_start, xact_start, query_start, state_change, wait_event_type, wait_event, state, backend_xid, backend_xmin, NULL as query_id, query, backend_type"
     else
         # MySQL10-12兼容处理
@@ -128,9 +128,8 @@ execute_query() {
     #echo "SQL:""$SQL"
 
     # 查询pg_stat_activity视图
-    #ERROR_OUTPUT=$(MySQLPASSWORD="$MySQL_PASSWORD" mysql -h "$MySQL_HOST" -p "$MySQL_PORT" -U "$MySQL_USER" -d "$MySQL_DATABASE" -A -t -c "$SQL" 2>&1 >> "$LOG_FILE")
-    ERROR_OUTPUT=$(mysql -h "$MySQL_HOST" -P "$MySQL_PORT" -u "$MySQL_USER" -p"$MySQL_PASSWORD" --silent --skip-column-names -B -e "SELECT * from information_schema.processlist;" "$MySQL_DATABASE"  2>&1  >> "$LOG_FILE" )
-    #ERROR_OUTPUT=$(mysql -h "$MySQL_HOST" -P "$MySQL_PORT" -u "$MySQL_USER" -p"$MySQL_PASSWORD" --silent --skip-column-names -B -e "SELECT * from information_schema.processlist;" "$MySQL_DATABASE"  2>&1 > >(tr '\t' '|'   >> "$LOG_FILE" ))
+    #ERROR_OUTPUT=$(MySQLPASSWORD="$MYSQL_PASSWORD" mysql -h "$MYSQL_HOST" -p "$MYSQL_PORT" -U "$MYSQL_USER" -d "$MYSQL_DATABASE" -A -t -c "$SQL" 2>&1 >> "$LOG_FILE")
+    ERROR_OUTPUT=$(mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" --silent --skip-column-names -B -e "SELECT * from information_schema.processlist;" "$MYSQL_DATABASE"  2>&1  >> "$LOG_FILE" )
 
     EXIT_STATUS=$?
     echo "ERROR_OUTPUT:"$ERROR_OUTPUT
@@ -138,36 +137,28 @@ execute_query() {
 
     # 检查执行状态
     if [ $EXIT_STATUS -eq 0 ]; then
-        #echo "SQL命令执行成功。"
         log_message "INFO" "SQL命令执行成功。"
     else
-        #echo "SQL命令执行失败，错误信息：$ERROR_OUTPUT"
         log_message "ERROR" "SQL命令执行失败，错误信息为：$ERROR_OUTPUT"
         # 根据错误信息进行更精细化的判断和处理
         if echo "$ERROR_OUTPUT" | grep -q "ERROR 2002 (HY000): Can't connect to local MySQL server through socket "; then
             log_message "ERROR" "错误：无法连接到 MySQL 服务器，请检查MySQL服务是否正常运行。"
-            exit 1
         elif echo "$ERROR_OUTPUT" | grep -q "ERROR 2005 (HY000): Unknown MySQL server host "; then
             log_message "ERROR" "错误：host 认证失败，请检查。"
-            exit 1
         elif echo "$ERROR_OUTPUT" | grep -q "ERROR 1045 (28000): Access denied for user "; then
             log_message "ERROR" "错误：密码认证失败，请检查用户名和密码。"
-            exit 1
         elif echo "$ERROR_OUTPUT" | grep -q "ERROR 1049 (42000): Unknown database "; then
             log_message "ERROR" "错误：数据库不存在，请检查。"
-            exit 1
         elif echo "$ERROR_OUTPUT" | grep -q "Table doesn't exist"; then
             log_message "ERROR" "错误：表不存在，请检查。"
-            exit 1
         elif echo "$ERROR_OUTPUT" | grep -q "too many clients already"; then
             log_message "ERROR" "错误：数据库连接数已满。"
             # 可以在这里加入处理连接数满的代码，例如重试或终止空闲连接
-            exit 1
         # ... 其他错误类型的判断和处理
         else
             log_message "ERROR" "错误：未知错误，详见报错信息。"
-            exit 1
         fi
+        exit 1
     fi
 
     log_message "INFO" "查询数据库结束。"
