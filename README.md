@@ -2,12 +2,12 @@
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/yansheng836/mysql_collect_processlist/shell-ci.yml?style=flat&label=build%3A%20shell-ci) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/yansheng836/mysql_collect_processlist/MySQL-ci-16.3.yml?style=flat&label=build%3A%20MySQL-ci-16.3) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/yansheng836/mysql_collect_processlist/MySQL-ci.yml?style=flat&label=build%3A%20MySQL-ci-10-17) ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/yansheng836/mysql_collect_processlist) [![GitHub Issues](https://img.shields.io/github/issues/yansheng836/mysql_collect_processlist)](https://github.com/yansheng836/mysql_collect_processlist/issues) [![GitHub Pull Requests](https://img.shields.io/github/issues-pr/yansheng836/mysql_collect_processlist)](https://github.com/yansheng836/mysql_collect_processlist/pulls) [![GitHub Tag](https://img.shields.io/github/v/tag/yansheng836/mysql_collect_processlist)](https://github.com/yansheng836/mysql_collect_processlist/tags) [![GitHub Release](https://img.shields.io/github/v/release/yansheng836/mysql_collect_processlist)](https://github.com/yansheng836/mysql_collect_processlist/releases) ![GitHub Repo stars](https://img.shields.io/github/stars/yansheng836/mysql_collect_processlist) ![GitHub forks](https://img.shields.io/github/forks/yansheng836/mysql_collect_processlist) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/4460db83948f4592ab825e8e900ec79f)](https://app.codacy.com/gh/yansheng836/mysql_collect_processlist/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade) [![GitHub License](https://img.shields.io/github/license/yansheng836/mysql_collect_processlist)](https://github.com/yansheng836/mysql_collect_processlist/blob/master/LICENSE.txt)
 
-这是一个纯脚本工具，用于从MySQL的pg_stat_activity视图中定期收集数据并保存到本地日志文件。支持PG10-PG17版本。
+这是一个纯脚本工具，用于从MySQL的`information_schema.processlist`视图中定期收集数据并保存到本地日志文件。支持MYSQL8.0.43版本。
 
 **相关背景**：
 
-1. 某个慢SQL打满内存，导致系统kill掉mysql的某个进程，进而导致mysql进程重启，没有现场排查不了具体原因。（即使开启了慢SQL日志，没有执行完也不会记录到数据库日志中）
-2. 数据库连接数被打满，PG相关监控数据丢失（因为也连不上数据库了），没有现场，不知道异常请求来源。
+1. 某个慢SQL打满内存，导致系统kill掉mysql的进程，进而导致mysql进程重启，没有现场排查不了具体原因。（即使开启了慢SQL日志，没有执行完也不会记录到数据库日志中）
+2. 数据库连接数被打满，MYSQL相关监控数据丢失（因为也连不上数据库了），没有现场，不知道异常请求来源。
 
 **特性**：
 
@@ -25,7 +25,7 @@
 git clone git@github.com:yansheng836/mysql_collect_processlist.git
 cd mysql_collect_processlist
 
-# 修改必要参数(均以 PG_ 开头，例如：PG_PATH、PG_HOST 等)
+# 修改必要参数(均以 MYSQL_ 开头，例如：MYSQL_PATH、MYSQL_HOST 等)
 vi mysql_collect_processlist.sh
 
 # 查路径
@@ -35,33 +35,21 @@ pwd
 # 每分钟执行
 * * * * * pwd路径/mysql_collect_processlist.sh
 
-# 每5秒执行（可自行调整秒数）
+# 如果需要更频繁，比如每5秒执行（可自行调整秒数）
 * * * * * pwd路径/mysql_collect_processlist_gap_second.sh 5
 ```
 
 ## 日志文件内容
 
-测试版本：MySQL 16.3 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-44), 64-bit
+测试版本：mysql  Ver 8.0.43 for Linux on x86_64 (MySQL Community Server - GPL)
 
-CI版本：PG10-PG17
+CI版本：
 
-输出字段为：now(),datid, datname, pid, leader_pid, usesysid, usename, application_name, client_addr, client_hostname, client_port, backend_start, xact_start, query_start, state_change, wait_event_type, wait_event, state, backend_xid, backend_xmin, query_id, query, backend_type
+输出字段为：now(),ID,USER,HOST,DB,COMMAND,TIME,STATE,INFO
 
 ```plain
-2025-08-28 13:02:22.151458+08|||29360||||||||2025-08-12 13:58:41.03657+08||||Activity|CheckpointerMain||||||checkpointer
-2025-08-28 13:02:22.151458+08|||29361||||||||2025-08-12 13:58:41.036868+08||||Activity|BgWriterHibernate||||||background writer
-2025-08-28 13:02:22.151458+08|||29363||||||||2025-08-12 13:58:41.043339+08||||Activity|WalWriterMain||||||walwriter
-2025-08-28 13:02:22.151458+08|||29365||10|mysql|||||2025-08-12 13:58:41.04334+08||||Activity|LogicalLauncherMain||||||logical replication launcher
-2025-08-28 13:02:22.151458+08|||29364||||||||2025-08-12 13:58:41.043811+08||||Activity|AutoVacuumMain||||||autovacuum launcher
-2025-08-28 13:02:22.151458+08|5|mysql|6583||10|mysql|Navicat|42.99.63.72||36481|2025-08-28 12:34:20.191304+08||2025-08-28 12:47:55.618303+08|2025-08-28 12:47:55.619804+08|Client|ClientRead|idle|||7982016161531118154|SELECT now(),datid, datname, pid, leader_pid, usesysid, usename, application_name, client_addr, client_hostname, client_port, backend_start, xact_start, query_start, state_change, wait_event_type, wait_event, state, backend_xid, backend_xmin, query_id, query, backend_type from pg_stat_activity WHERE pid <> pg_backend_pid() ORDER BY backend_start ASC|client backend
-2025-08-28 13:02:22.151458+08|5|mysql|6611||10|mysql|Navicat|42.99.63.72||36773|2025-08-28 12:34:26.810414+08||2025-08-28 12:47:55.670278+08|2025-08-28 12:47:55.670683+08|Client|ClientRead|idle|||7746404270258954630|SELECT c.conkey FROM pg_constraint c WHERE c.contype = 'p' and c.conrelid = 12222|client backend
-2025-08-28 13:02:23.339309+08|||29360||||||||2025-08-12 13:58:41.03657+08||||Activity|CheckpointerMain||||||checkpointer
-2025-08-28 13:02:23.339309+08|||29361||||||||2025-08-12 13:58:41.036868+08||||Activity|BgWriterHibernate||||||background writer
-2025-08-28 13:02:23.339309+08|||29363||||||||2025-08-12 13:58:41.043339+08||||Activity|WalWriterMain||||||walwriter
-2025-08-28 13:02:23.339309+08|||29365||10|mysql|||||2025-08-12 13:58:41.04334+08||||Activity|LogicalLauncherMain||||||logical replication launcher
-2025-08-28 13:02:23.339309+08|||29364||||||||2025-08-12 13:58:41.043811+08||||Activity|AutoVacuumMain||||||autovacuum launcher
-2025-08-28 13:02:23.339309+08|5|mysql|6583||10|mysql|Navicat|42.99.63.72||36481|2025-08-28 12:34:20.191304+08||2025-08-28 12:47:55.618303+08|2025-08-28 12:47:55.619804+08|Client|ClientRead|idle|||7982016161531118154|SELECT now(),datid, datname, pid, leader_pid, usesysid, usename, application_name, client_addr, client_hostname, client_port, backend_start, xact_start, query_start, state_change, wait_event_type, wait_event, state, backend_xid, backend_xmin, query_id, query, backend_type from pg_stat_activity WHERE pid <> pg_backend_pid() ORDER BY backend_start ASC|client backend
-2025-08-28 13:02:23.339309+08|5|mysql|6611||10|mysql|Navicat|42.99.63.72||36773|2025-08-28 12:34:26.810414+08||2025-08-28 12:47:55.670278+08|2025-08-28 12:47:55.670683+08|Client|ClientRead|idle|||7746404270258954630|SELECT c.conkey FROM pg_constraint c WHERE c.contype = 'p' and c.conrelid = 12222|client backend
+2025-09-09 14:44:02|42|root|localhost|mysql|Query|0|executing|SELECT now(),ID,USER,HOST,DB,COMMAND,TIME,STATE,INFO from information_schema.processlist
+2025-09-09 14:44:02|5|event_scheduler|localhost|NULL|Daemon|8000|Waiting on empty queue|NULL
 ```
 
 ## 日志分析参考
@@ -70,7 +58,7 @@ CI版本：PG10-PG17
 
 ```shell
 # cat/more/less/grep 
-grep 'idle' processlist.log
+grep 'executing' processlist.log
 
 # 查找具体时间的相关日志
 grep '2025-09-04 12:59' processlist.log
@@ -82,10 +70,10 @@ zless logs/processlist-20250904-12.log.gz  | grep '2025-09-04 12:59'
 ### 2.统计不同状态的语句的数量
 
 ```shell
-# 第18列是状态：state
-awk -F '|' '{print $18}' processlist.log | sort | uniq -c
-     10 
-      4 idle
+# 第8列是状态：state
+awk -F '|' '{print $8}' processlist.log | sort | uniq -c
+      1 executing
+      1 Waiting on empty queue
 ```
 
 ### 3.按照时间统计
@@ -93,26 +81,23 @@ awk -F '|' '{print $18}' processlist.log | sort | uniq -c
 ```shell
 # 按天统计
 awk -F '|' '{print $1}' processlist.log | cut -d ' ' -f1 | sort | uniq -c
-     14 2025-08-28
+      2 2025-09-09
 # 按小时统计
 awk -F '[| ]' '{print $1 " " $2}' processlist.log | cut -d: -f1 | sort | uniq -c
-      7 2025-08-28 12
-      7 2025-08-28 14
+      2 2025-09-09 14
 # 按分钟统计
 awk -F '[| ]' '{print $1 " " $2}' processlist.log | cut -d: -f1-2 | sort | uniq -c
-      7 2025-08-28 12:59
-      7 2025-08-28 14:09
+      2 2025-09-09 14:44
 ```
 
 ## 注意事项
 
 1. 在业务繁忙的数据库上使用时，需要注意日志文件可能会快速增长，建议在特殊情况下短暂使用，并密切关注磁盘空间。
-2. `query`字段的长度受MySQL参数`track_activity_query_size`限制，默认为1024，超出部分会被截断。修改此参数需要重启数据库服务。
-3. 账号权限问题，可不使用mysql。推荐最小权限：[创建空库，]创建普通用户，授予`pg_read_all_stats`角色即可。
+2. `info`字段的长度受MySQL常量`PROCESS_LIST_INFO_WIDTH`限制，默认为65535（写死在源码中），超出部分会被截断。（足以满足绝大多数场景。）
+3. 账号权限问题，可不使用mysql。推荐最小权限：[创建空库，]创建普通用户，授予`PROCESS`权限即可。
       ```sql
-      -- CREATE DATABASE processlistdb;
-      CREATE USER processlist_user with password 'your password';
-      GRANT pg_read_all_stats TO processlist_user;
+      -- CREATE DATABASE processlist_db;
+      GRANT PROCESS ON *.* TO 'processlist_user'@'hostname';
       ```
 
 ## 贡献
