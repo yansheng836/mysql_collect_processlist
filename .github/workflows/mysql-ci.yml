@@ -1,3 +1,65 @@
-name: MySQL Session Collector CI for 10-17
+name: MySQL Session Collector CI for ALL VERSION
 
 on: [push, pull_request]
+
+jobs:
+  test-mysql-versions:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # (2025年9月10日)Extended Support LTS '8.0.43','8.4.6','9.4.0'
+        mysql-version: ['5.7.44','8.0.43','8.1.0','8.2.0','8.3.0','8.4.6','9.0.1','9.1.0','9.2.0','9.3.0','9.4.0']
+    services:
+      mysql:
+        image: mysql:${{ matrix.mysql-version }}
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup environment
+      run: |
+        echo "MYSQL_PATH=/usr/bin/mysql" >> $GITHUB_ENV
+        echo "MYSQL_HOST=127.0.0.1" >> $GITHUB_ENV
+        echo "MYSQL_PORT=3306" >> $GITHUB_ENV
+        echo "MYSQL_USER=root" >> $GITHUB_ENV
+        echo "MYSQL_PWD=root" >> $GITHUB_ENV
+        echo "MYSQL_DATABASE=test_db" >> $GITHUB_ENV
+        echo "OUTPUT_FILE=processlist.log" >> $GITHUB_ENV
+
+    - name: Install MySQL client
+      run: sudo apt-get install -y mysql-client
+
+    - name: Test basic collection
+      run: |
+        # 授予PROCESS权限
+        mysql -h127.0.0.1 -P3306 -uroot -proot -e "GRANT PROCESS ON *.* TO 'root'@'%';" test_db
+
+        # 执行主脚本
+        chmod +x mysql_collect_processlist.sh
+        sh ./mysql_collect_processlist.sh
+        # 验证日志生成
+        test -f $OUTPUT_FILE && echo "Log created" || exit 1
+        # 验证日志格式
+        head -n 1 $OUTPUT_FILE | grep -q '|' && echo "Valid format" || exit 1
+
+    - name: Test interval collection
+      run: |
+        chmod +x mysql_collect_processlist_gap_second.sh
+        # 后台运行5秒间隔收集
+        ./mysql_collect_processlist_gap_second.sh 5 &
+        sleep 8
+        pkill -f mysql_collect_process
+        # 验证多条目收集
+        entries=$(wc -l < $OUTPUT_FILE)
+        [ $entries -ge 2 ] && echo "Multi-entry collected" || exit 1
