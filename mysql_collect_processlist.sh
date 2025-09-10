@@ -9,7 +9,7 @@ export PATH=$MYSQL_PATH:$PATH
 MYSQL_HOST="${MYSQL_HOST:-localhost}"
 MYSQL_PORT="${MYSQL_PORT:-3306}"
 MYSQL_USER="${MYSQL_USER:-root}"
-MYSQL_PWD="${MYSQL_PWD:-Yansheng123456.md5.4e38eef9ec2db889ca23f5edcc885b06}" # 替换为实际密码
+MYSQL_PWD="${MYSQL_PWD:-}" # 替换为实际密码
 export MYSQL_PWD=$MYSQL_PWD
 MYSQL_DATABASE="${MYSQL_DATABASE:-mysql}"
 #>>>>>>>>>> 需要修改的参数 >>>>>>>>
