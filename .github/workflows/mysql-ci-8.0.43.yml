@@ -51,7 +51,7 @@ jobs:
         export MYSQL_PWD=root
         export MYSQL_DATABASE=test_db
         export OUTPUT_FILE=processlist.log
-        
+
         # 执行主脚本
         chmod +x mysql_collect_processlist.sh
         sh ./mysql_collect_processlist.sh
@@ -62,6 +62,14 @@ jobs:
 
     - name: Test interval collection
       run: |
+        export MYSQL_PATH=/usr/bin/mysql
+        export MYSQL_HOST=127.0.0.1
+        export MYSQL_PORT=3306
+        export MYSQL_USER=root
+        export MYSQL_PWD=root
+        export MYSQL_DATABASE=test_db
+        export OUTPUT_FILE=processlist.log
+        
         chmod +x mysql_collect_processlist_gap_second.sh
         # 后台运行5秒间隔收集
         ./mysql_collect_processlist_gap_second.sh 5 &
