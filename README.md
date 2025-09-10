@@ -33,10 +33,10 @@ pwd
 
 # crontab -e
 # 每分钟执行
-* * * * * pwd路径/mysql_collect_processlist.sh
+* * * * * sh pwd路径/mysql_collect_processlist.sh
 
 # 如果需要更频繁，比如每5秒执行（可自行调整秒数）
-* * * * * pwd路径/mysql_collect_processlist_gap_second.sh 5
+* * * * * sh pwd路径/mysql_collect_processlist_gap_second.sh 5
 ```
 
 ## 日志文件内容

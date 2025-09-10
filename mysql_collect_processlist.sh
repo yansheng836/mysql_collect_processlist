@@ -9,7 +9,7 @@ export PATH=$MYSQL_PATH:$PATH
 MYSQL_HOST="${MYSQL_HOST:-localhost}"
 MYSQL_PORT="${MYSQL_PORT:-3306}"
 MYSQL_USER="${MYSQL_USER:-root}"
-MYSQL_PWD="${MYSQL_PWD:-}" # 替换为实际密码
+MYSQL_PWD="${MYSQL_PWD:-Yansheng123456.md5.4e38eef9ec2db889ca23f5edcc885b06}" # 替换为实际密码
 export MYSQL_PWD=$MYSQL_PWD
 MYSQL_DATABASE="${MYSQL_DATABASE:-mysql}"
 #>>>>>>>>>> 需要修改的参数 >>>>>>>>
@@ -104,32 +104,10 @@ check_and_split_log() {
 execute_query() {
     log_message "INFO" "开始查询数据库..."
 
-    # 动态检测MySQL版本并适配SQL
-    #MYSQL_MAJOR_VERSION=$(mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" "$MYSQL_DATABASE" -p"$MYSQL_PORT" -c "SELECT version();" 2>/dev/null || echo 10)
-    #MYSQL_MAJOR_VERSION=$(mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" "$MYSQL_DATABASE" -p"$MYSQL_PASSWORD" --silent --skip-column-names -e "SELECT version();" >> "$LOG_FILE")
-    #MYSQL_MAJOR_VERSION=$(mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" "$MYSQL_DATABASE" -p"$MYSQL_PASSWORD" --silent --skip-column-names -e "SELECT * from information_schema.processlist;" | tr '\t' '|' >> "$LOG_FILE")
-    #echo "MYSQL_MAJOR_VERSION:""$MYSQL_MAJOR_VERSION"
-    #exit 1
-    # 根据版本构建字段列表
-    # MySQL14+ (≥14)，不需要处理；MySQL13，query_id，添加 NULL as query_id；MySQL10-12，leader_pid，query_id，添加两个 NULL as col。
-    MYSQL_MAJOR_VERSION=8
-    if [ "$MYSQL_MAJOR_VERSION" -ge 14 ]; then
-        FIELDS="datid, datname, pid, leader_pid, usesysid, usename, application_name, client_addr, client_hostname, client_port, backend_start, xact_start, query_start, state_change, wait_event_type, wait_event, state, backend_xid, backend_xmin, query_id, query, backend_type"
-    elif [ "$MYSQL_MAJOR_VERSION" -ge 13 ]; then
-        FIELDS="datid, datname, pid, leader_pid, usesysid, usename, application_name, client_addr, client_hostname, client_port, backend_start, xact_start, query_start, state_change, wait_event_type, wait_event, state, backend_xid, backend_xmin, NULL as query_id, query, backend_type"
-    else
-        # MySQL10-12兼容处理
-        FIELDS="datid, datname, pid, NULL as leader_pid, usesysid, usename, application_name, client_addr, client_hostname, client_port, backend_start, xact_start, query_start, state_change, wait_event_type, wait_event, state, backend_xid, backend_xmin, NULL as query_id, query, backend_type"
-    fi
-
-    # 构建查询SQL
-    SQL="SELECT * from information_schema.processlist;"
-    #echo "SQL:""$SQL"
-
     # 查询 information_schema.processlist
     #ERROR_OUTPUT=$(mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" --silent --skip-column-names -B -e "SELECT * from information_schema.processlist;" "$MYSQL_DATABASE"  2>&1  >> "$LOG_FILE" )
     # 为了能够正常捕获异常及进行换行符处理，不直接输出到文件
-    ALL_OUTPUT=$(mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" --silent --skip-column-names -B -e "SELECT now(),ID,USER,HOST,DB,COMMAND,TIME,STATE,INFO from information_schema.processlist;" "$MYSQL_DATABASE"  2>&1 )
+    ALL_OUTPUT=$(mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" --silent --skip-column-names -B -e "SELECT now(),ID,USER,HOST,DB,COMMAND,TIME,STATE,INFO from information_schema.processlist ORDER BY time DESC;" "$MYSQL_DATABASE"  2>&1 )
     EXIT_STATUS=$?
     #echo "ALL_OUTPUT:"$ALL_OUTPUT
     #echo "EXIT_STATUS:"$EXIT_STATUS
