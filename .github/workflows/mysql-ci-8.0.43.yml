@@ -44,6 +44,14 @@ jobs:
         # 授予PROCESS权限
         mysql -h127.0.0.1 -P3306 -uroot -proot -e "GRANT PROCESS ON *.* TO 'root'@'%';" test_db
 
+        export MYSQL_PATH=/usr/bin/mysql
+        export MYSQL_HOST=127.0.0.1
+        export MYSQL_PORT=3306
+        export MYSQL_USER=root
+        export MYSQL_PWD=root
+        export MYSQL_DATABASE=test_db
+        export OUTPUT_FILE=processlist.log
+        
         # 执行主脚本
         chmod +x mysql_collect_processlist.sh
         sh ./mysql_collect_processlist.sh
