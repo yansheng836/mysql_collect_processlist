@@ -4,6 +4,8 @@
 
 这是一个纯脚本工具，用于从MySQL的`information_schema.processlist`视图中定期收集数据并保存到本地日志文件。支持MYSQL5.7-9.4版本。
 
+template copy from PostgreSQL version : <https://github.com/yansheng836/pg_collect_pgsa> .
+
 **相关背景**：
 
 1. 某个慢SQL打满内存，导致系统kill掉mysql的进程，进而导致mysql进程重启，没有现场排查不了具体原因。（即使开启了慢SQL日志，没有执行完也不会记录到数据库日志中）
