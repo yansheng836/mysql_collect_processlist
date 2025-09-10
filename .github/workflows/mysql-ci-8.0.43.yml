@@ -33,6 +33,7 @@ jobs:
         export MYSQL_PORT=3306
         export MYSQL_USER=root
         export MYSQL_PWD=root
+        export MYSQL_DATABASE=test_db
         export OUTPUT_FILE=processlist.log
 
     - name: Install MySQL client
@@ -41,7 +42,8 @@ jobs:
     - name: Test basic collection
       run: |
         # 授予PROCESS权限
-        mysql -h127.0.0.1 -uroot -proot -e "GRANT PROCESS ON *.* TO 'root'@'%';"
+        mysql -h127.0.0.1 -P3306 -uroot -e "GRANT PROCESS ON *.* TO 'root'@'%';" test_db
+
         # 执行主脚本
         chmod +x mysql_collect_processlist.sh
         sh ./mysql_collect_processlist.sh
