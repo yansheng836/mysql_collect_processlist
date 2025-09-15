@@ -128,9 +128,7 @@ execute_query() {
             log_message "ERROR" "错误：密码认证失败，请检查用户名和密码。"
         elif echo "$ERROR_OUTPUT" | grep -q "ERROR 1049 (42000): Unknown database "; then
             log_message "ERROR" "错误：数据库不存在，请检查。"
-        elif echo "$ERROR_OUTPUT" | grep -q "Table doesn't exist"; then
-            log_message "ERROR" "错误：表不存在，请检查。"
-        elif echo "$ERROR_OUTPUT" | grep -q "too many clients already"; then
+        elif echo "$ERROR_OUTPUT" | grep -q "ERROR 1040 (HY000): Too many connections"; then
             log_message "ERROR" "错误：数据库连接数已满。"
             # 可以在这里加入处理连接数满的代码，例如重试或终止空闲连接
         # ... 其他错误类型的判断和处理
